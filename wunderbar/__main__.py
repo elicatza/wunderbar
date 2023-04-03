@@ -1,22 +1,25 @@
 #!/usr/bin/env python3
 
+from anki.storage import Collection
+from collections import deque
+from typing import NamedTuple, Iterable
+import anki
 import argparse
+import enum
+import io
 import logging
 import os
-import io
 import sys
-import enum
-from anki.storage import Collection
-from typing import NamedTuple
-import anki
-import toml
+import toml  # Note: change to tomllib in python 3.11
 
 
 if os.name == 'nt':
-    print('This program does not work on windows\nExiting...')
+    print('''This program does not work on windows\n
+          I\'ve heard linux is the best os, you could use that\n
+          Exiting...''')
     sys.exit(1)
 
-ANKI_DECK_NAME = 'Test'
+ANKI_DECK_NAME = 'Wunderbar'
 XDG_DATA_DIR = os.environ.get('XDG_DATA_HOME') or os.environ['HOME'] + '/.local/share'
 ANKI_HOME = os.path.join(XDG_DATA_DIR, 'Anki2')
 ANKI_REL_COLLECTION_PATH = 'User 1/collection.anki2'
@@ -51,6 +54,19 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
         type=arg_is_dir,
         default=ANKI_HOME,
         help='File to parse'
+    )
+
+    parser.add_argument(
+        '-d', '--deck',
+        type=str,
+        default=ANKI_DECK_NAME,
+        help='Name of deck you want to modify'
+    )
+
+    parser.add_argument(
+        '-f', '--force',
+        action='store_true',
+        help='Name of deck you want to modify'
     )
 
     parser.add_argument(
@@ -132,14 +148,14 @@ def org_extract_toml(fp: io.TextIOWrapper) -> str | None:
     return rv
 
 
-def parse_toml(text: str) -> list[Card] | None:
+def parse_toml(text: str) -> deque[Card] | None:
     try:
         raw_dict = toml.loads(text)
     except toml.TomlDecodeError as err:
         logging.error(f'Unable to parse toml: {err}')
         return None
 
-    rt_cards: list[Card] = []
+    rt_cards: deque[Card] = deque()
     for key, value in raw_dict.items():
         try:
             c_type = Model[key]
@@ -176,6 +192,25 @@ def create_note(col: Collection, card: Card) -> anki.notes.Note | None:
         note.fields[2] = "yes"
 
     return note
+
+
+def display_adjustments(col: Collection,
+                        args: argparse.Namespace,
+                        notes: Iterable[anki.notes.Note]
+                        ) -> None:
+    print('----- New cards -----')
+    for note in notes:
+        n_type = note.note_type()
+        if n_type is not None:
+            print(f'Type : {n_type.get("name")}')
+        print(f'Front: {note.fields[0]}')
+        print(f'Back : {note.fields[1]}')
+        print('')
+
+    print(f'Base: {args.base}')
+    print(f'Rel collection: {ANKI_REL_COLLECTION_PATH}')
+    print('')
+    return None
 
 
 def main() -> None:
@@ -215,13 +250,20 @@ def main() -> None:
 
     # Create a new card
     logging.info('Creating cards')
-    for card in cards:
+    notes: deque[anki.notes.Note] = deque(maxlen=len(cards))
+    for i, card in enumerate(cards):
         note = create_note(col, card)
         if note is None:
             return None
         col.add_note(note, deck['id'])
+        notes.append(note)
 
-    # TODO: verify cards with user (on flag)
+    if args.force is False:
+        display_adjustments(col, args, notes)
+        if input('Are you sure you want to write changes? [y/n] ') != 'y':
+            print('Exiting...')
+            sys.exit(0)
+
     logging.info('Saving cards')
     col.save()
 
