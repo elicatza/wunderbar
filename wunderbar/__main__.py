@@ -7,8 +7,7 @@ import io
 import sys
 import enum
 from anki.storage import Collection
-from anki.models import NotetypeId
-from typing import NamedTuple, TypedDict
+from typing import NamedTuple
 import anki
 import toml
 
