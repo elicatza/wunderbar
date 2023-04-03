@@ -23,23 +23,7 @@ ANKI_HOME = os.path.join(XDG_DATA_DIR, 'Anki2')
 ANKI_REL_COLLECTION_PATH = 'User 1/collection.anki2'
 
 
-# class AType(enum.Enum):
-#     BASIC = 1680374475390
-#     REVERSED = 1680374475391
-#     REVERSED_OPT = 1680374475392
-#     TYPE_ANSWER = 1680374475393
-#     CLOZE = 1680374475394
-
-
-# class TomlType(enum.Enum):
-#     BASIC = 'basic'
-#     REVERSED = 'reverse'
-#     REVERSED_OPT = 'reverse_optional'
-#     TYPE_ANSWER = 'typing'
-#     CLOZE = 'cloze'
-
-
-class Models(enum.Enum):
+class Model(enum.Enum):
     basic = "Basic"
     reversed = "Basic (and reversed card)"
     reversed_optional = "Basic (optional reversed card)"
@@ -50,7 +34,7 @@ class Models(enum.Enum):
 class Card(NamedTuple):
     front: str
     back: str
-    type: AType
+    model: Model
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
@@ -158,23 +142,16 @@ def parse_toml(text: str) -> list[Card] | None:
 
     rt_cards: list[Card] = []
     for key, value in raw_dict.items():
-        match key:
-            case TomlType.CLOZE.value:
-                c_type = AType.CLOZE
-            case TomlType.BASIC.value:
-                c_type = AType.BASIC
-            case TomlType.REVERSED.value:
-                c_type = AType.REVERSED
-            case TomlType.REVERSED_OPT.value:
-                c_type = AType.REVERSED_OPT
-            case _:
-                logging.error(f'`{key}` is not a valid card type\nExiting...')
-                return None
+        try:
+            c_type = Model[key]
+        except KeyError:
+            logging.error(f'`{key}` is not a valid card type')
+            return None
 
         for ikey, ivalue in value.items():
             try:
                 rt_cards.append(Card(
-                    type=c_type,
+                    model=c_type,
                     front=ivalue['front'],
                     back=ivalue['back']))
             except (KeyError, TypeError):
@@ -185,8 +162,8 @@ def parse_toml(text: str) -> list[Card] | None:
 
 def create_note(col: Collection, card: Card) -> anki.notes.Note | None:
     # model = col.models.get(NotetypeId(card.type.value))
-    model_manager = anki.models.ModelManager(col)
-    model = col.models.by_name('basic')
+    # model_manager = anki.models.ModelManager(col)
+    model = col.models.by_name(card.model.name)
     if model is None:
         logging.error('Failed to get card model')
         return None
@@ -196,7 +173,7 @@ def create_note(col: Collection, card: Card) -> anki.notes.Note | None:
     note.fields[0] = card.front
     note.fields[1] = card.back
 
-    if card.type == AType.REVERSED_OPT:
+    if card.model == Model.reversed_optional:
         note.fields[2] = "yes"
 
     return note
@@ -209,8 +186,10 @@ def main() -> None:
     configure_logger(args.verbose)
 
     # https://www.juliensobczak.com/write/2020/12/26/anki-scripting-for-non-programmers.html
-    logging.debug(args.base)
-    logging.debug(os.path.join(args.base, ANKI_REL_COLLECTION_PATH))
+    logging.debug(f'Anki base dir: {args.base}')
+    logging.debug(f'Anki collection file: {os.path.join(args.base, ANKI_REL_COLLECTION_PATH)}')
+    logging.debug(f'File: {args.file.name}')
+
     try:
         col = Collection(os.path.join(args.base, ANKI_REL_COLLECTION_PATH))
     except anki.errors.DBError:
@@ -245,7 +224,7 @@ def main() -> None:
 
     # TODO: verify cards with user (on flag)
     logging.info('Saving cards')
-    # col.save()
+    col.save()
 
     return None
 
