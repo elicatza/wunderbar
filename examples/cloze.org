@@ -1,0 +1,24 @@
+* Header
+  #+begin_src toml
+  [cloze.1]
+  front = "foo {{c1::bar}} baz"
+  back = "bar"
+  tags = ["Deutsch"]
+
+  [cloze.2]
+  front = "foo {{c1::bar}} baz"
+  back = "bar"
+  tags = ["Physic"]
+  #+end_src
+
+  #+begin_src toml
+  [cloze.3]
+  front = "now {{c1::soon}} later"
+  back = "A little night music"
+  tags = ["Musicals"]
+
+  [basic.1]
+  front = "Which song is after now / soon / later?"
+  back = "the glamourus life"
+  tags = ["Musicals"]
+  #+end_src

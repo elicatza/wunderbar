@@ -2,4 +2,4 @@
 enabled = true
 live_mode = true
 strict = true
-dmypy = true
+# dmypy = true
