@@ -37,10 +37,12 @@ class Card(NamedTuple):
     front: str
     back: str
     model: Model
+    uid: str
+    tags: deque[str]
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
-    parser.description = "to import anki cards"
+    parser.description = "org containing toml anki cards"
 
     parser.add_argument(
         '-F', '--file',
@@ -148,6 +150,33 @@ def org_extract_toml(fp: io.TextIOWrapper) -> str | None:
     return rv
 
 
+def read_uids(fp: io.TextIOWrapper) -> dict[str, bool] | None:
+    if not fp.readable():
+        logging.error(f'Unable to read file: {fp.name}')
+        return None
+
+    uids = dict()
+    for line in fp:
+        uids[line.strip()] = True
+
+    return uids
+
+
+def write_uids(fp: io.TextIOWrapper, cards: Iterable[Card]) -> bool:
+    if not fp.writable():
+        logging.error(f'Unable to write to file: {fp.name}')
+        return False
+
+    if fp.mode != 'a':
+        logging.error(f'Opened file with wrong mode `{fp.mode}. Should be `a`')
+        return False
+
+    for card in cards:
+        fp.write(card.uid + '\n')
+
+    return True
+
+
 def parse_toml(text: str) -> deque[Card] | None:
     try:
         raw_dict = toml.loads(text)
@@ -167,12 +196,25 @@ def parse_toml(text: str) -> deque[Card] | None:
             try:
                 rt_cards.append(Card(
                     model=c_type,
+                    uid=ikey,
+                    tags=ivalue.get('tags'),
                     front=ivalue['front'],
                     back=ivalue['back']))
             except (KeyError, TypeError):
                 logging.error(f'Invalid card: {ivalue}')
                 return None
     return rt_cards
+
+
+def filter_out_nonuid(cards: Iterable[Card], uids: dict[str, bool]) -> deque[Card]:
+    rt: deque[Card] = deque()
+    for card in cards:
+        if card.uid in uids:
+            logging.info(f'Discarding `{card.uid}`')
+            continue
+        rt.append(card)
+
+    return rt
 
 
 def create_note(col: Collection, card: Card) -> anki.notes.Note | None:
@@ -213,6 +255,16 @@ def display_adjustments(col: Collection,
     return None
 
 
+def ensure_file(path: str) -> None:
+    if not os.path.isdir(os.path.dirname(path)):
+        os.makedirs(os.path.dirname(path))
+
+    if not os.path.isfile(path):
+        os.mknod(path)
+
+    return None
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     add_arguments(parser)
@@ -248,6 +300,17 @@ def main() -> None:
 
     col.decks.select(deck['id'])
 
+    # get uids
+    uid_path = os.path.join(XDG_DATA_DIR, 'wunderbar/uids.log')
+    logging.info(f'Reading uids `{uid_path}`')
+    ensure_file(uid_path)
+    with open(uid_path, 'r', encoding='utf-8') as fp:
+        uid_dict = read_uids(fp)
+        if uid_dict is None:
+            return None
+
+    cards = filter_out_nonuid(cards, uid_dict)
+
     # Create a new card
     logging.info('Creating cards')
     notes: deque[anki.notes.Note] = deque(maxlen=len(cards))
@@ -263,6 +326,12 @@ def main() -> None:
         if input('Are you sure you want to write changes? [y/n] ') != 'y':
             print('Exiting...')
             sys.exit(0)
+
+    logging.info(f'Writing uids to `{uid_path}`')
+    ensure_file(uid_path)
+    with open(uid_path, 'a', encoding='utf-8') as fp:
+        if not write_uids(fp, cards):
+            return None
 
     logging.info('Saving cards')
     col.save()
