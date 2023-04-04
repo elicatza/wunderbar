@@ -291,7 +291,7 @@ def main() -> None:
     logging.info('Extracting toml from org mode')
     rt = org_extract_toml(args.file)
     if rt is None:
-        return None
+        sys.exit(1)
 
     logging.info('Parsing cards')
     cards = parse_toml(rt)
@@ -311,7 +311,7 @@ def main() -> None:
     with open(uid_path, 'r', encoding='utf-8') as fp:
         uid_dict = read_uids(fp)
         if uid_dict is None:
-            return None
+            sys.exit(1)
 
     cards = filter_out_nonuid(cards, uid_dict)
     if len(cards) == 0:
@@ -324,7 +324,7 @@ def main() -> None:
     for i, card in enumerate(cards):
         note = create_note(col, card)
         if note is None:
-            return None
+            sys.exit(1)
         col.add_note(note, deck['id'])
         notes.append(note)
 
@@ -338,7 +338,7 @@ def main() -> None:
     ensure_file(uid_path)
     with open(uid_path, 'a', encoding='utf-8') as fp:
         if not write_uids(fp, cards):
-            return None
+            sys.exit(1)
 
     logging.info('Saving cards')
     col.save()
