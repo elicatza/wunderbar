@@ -9,7 +9,18 @@ A-Za-z0-9
 
 1.3 * (10 ^ 7) = 50% chance of duplicate
 
+## Neovim integration (the good stuff)
+```lua
+-- Luasnip
+-- Command Anki that does it real good
+```
+
 ## TODO
+- Add markdown support
 - Tags based on git branch?
 - Custom css
-- Does this work with TeX?
+- Write usage
+- Write install
+- Write dependencies
+- Write AUR package
+- Write AUR Table of content

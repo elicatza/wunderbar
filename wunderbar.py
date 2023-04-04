@@ -47,7 +47,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         '-F', '--file',
         type=argparse.FileType('r', encoding='utf-8'),
-        default='./examples/cloze.org',
+        required=True,
         help='File to parse'
     )
 
@@ -139,12 +139,12 @@ def org_extract_toml(fp: io.TextIOWrapper) -> str | None:
     in_toml = False
     for line in fp:
         if in_toml:
-            if '#+end_src' in line:
+            if '#+end_src' == line.strip():
                 in_toml = False
                 continue
             rv += line.strip() + '\n'
 
-        if '#+begin_src toml' in line:
+        if '#+begin_src toml' == line.strip():
             in_toml = True
 
     return rv
@@ -220,9 +220,9 @@ def filter_out_nonuid(cards: Iterable[Card], uids: dict[str, bool]) -> deque[Car
 def create_note(col: Collection, card: Card) -> anki.notes.Note | None:
     # model = col.models.get(NotetypeId(card.type.value))
     # model_manager = anki.models.ModelManager(col)
-    model = col.models.by_name(card.model.name)
+    model = col.models.by_name(card.model.value)
     if model is None:
-        logging.error('Failed to get card model')
+        logging.error(f'Failed to get card model `{card.model.value}`')
         return None
 
     note = col.new_note(model)
@@ -283,9 +283,9 @@ def main() -> None:
         sys.exit(1)
 
     # Select deck
-    deck = ensure_deck(col, ANKI_DECK_NAME)
+    deck = ensure_deck(col, args.deck)
     if deck is None:
-        logging.error(f'Unable to create a new deck called {ANKI_DECK_NAME}\nExiting...')
+        logging.error(f'Unable to create a new deck called {args.deck}\nExiting...')
         sys.exit(1)
 
     logging.info('Extracting toml from org mode')
@@ -295,8 +295,12 @@ def main() -> None:
 
     logging.info('Parsing cards')
     cards = parse_toml(rt)
+
     if cards is None:
         sys.exit(1)
+    if len(cards) == 0:
+        print(f'`{args.file.name}` does not contain any cards')
+        return None
 
     col.decks.select(deck['id'])
 
@@ -310,6 +314,9 @@ def main() -> None:
             return None
 
     cards = filter_out_nonuid(cards, uid_dict)
+    if len(cards) == 0:
+        print(f'`{args.file.name}` does not contain any unique cards')
+        return None
 
     # Create a new card
     logging.info('Creating cards')
