@@ -57,9 +57,9 @@ vim.api.nvim_create_autocmd("FileType", {
       function(args)
         local filename = vim.api.nvim_buf_get_name(0)
         if args["args"] == "" then
-          os.execute("Wunderbar.py --force --file " .. filename)
+          os.execute("wunderbar.py --force --file " .. filename)
         else
-          os.execute("Wunderbar.py --force --file " .. filename .. "--deck " .. args["args"])
+          os.execute("wunderbar.py --force --file " .. filename .. "--deck " .. args["args"])
         end
       end,
       {nargs = "?", complete = function()

@@ -42,6 +42,7 @@ class Card(NamedTuple):
 
 
 def add_arguments(parser: argparse.ArgumentParser) -> None:
+    """Add argparse arguments to parser."""
     parser.description = "org containing toml anki cards"
 
     parser.add_argument(
@@ -82,6 +83,7 @@ def add_arguments(parser: argparse.ArgumentParser) -> None:
 
 
 def arg_is_dir(path: str) -> str:
+    """Function used to verify argparse directory type."""
     if os.path.isdir(path):
         return path
 
@@ -89,6 +91,7 @@ def arg_is_dir(path: str) -> str:
 
 
 def configure_logger(verbose: int = 0) -> None:
+    """Set logging verbosity."""
     root_logger = logging.root
 
     match verbose:
@@ -107,12 +110,24 @@ def configure_logger(verbose: int = 0) -> None:
 
 
 def ensure_deck(col: Collection, deck_name: str) -> anki.decks.DeckDict | None:
-    '''
-    Select anki deck.
+    """
+    Select Anki deck.
+
     Creates a new deck if one does not already exist.
 
-    Returns None if creating a new deck fails
-    '''
+    Parameters
+    ----------
+    col: anki.storage.Collection
+    deck_name: str
+        The Anki deck you want to open.
+
+    Returns
+    -------
+    Optional[None]
+        Failed to create new deck.
+    Optional[anki.decks.DeckDict]
+        Anki deck with `deck_name`.
+    """
     deck = col.decks.by_name(deck_name)
     if deck is None:
         logging.info(f'Unable to get deck: {deck_name}\nAttempting to create a new deck')
@@ -131,8 +146,27 @@ def ensure_deck(col: Collection, deck_name: str) -> anki.decks.DeckDict | None:
 
 
 def org_extract_toml(fp: io.TextIOWrapper) -> str | None:
+    """
+    extract toml from orgmode file.
+
+    This function looks for a pattern begning with ``#+begin_src toml``,
+    that ends in ``#+end_src``.
+
+    Parameters
+    ----------
+    file: io.TextIOWrapper
+        Readable org file with Toml.
+
+    Returns
+    -------
+    Option[str]
+        Toml parsed form file. Is empty if file does not contain toml.
+    Option[None]
+        Toml parsed form file. Is empty if file does not contain toml.
+    """
     if not fp.readable():
         logging.error(f'Unable to read file: {fp.name}\nExiting...')
+        io.FileIO.readable
         return None
 
     rv = ""
@@ -151,6 +185,23 @@ def org_extract_toml(fp: io.TextIOWrapper) -> str | None:
 
 
 def read_uids(fp: io.TextIOWrapper) -> dict[str, bool] | None:
+    """
+    Read unique ids from file.
+
+    The file should only contain 1 column.
+
+    Parameters
+    ----------
+    file: io.TextIOWrapper
+        Readable file.
+
+    Returns
+    -------
+    Option[dict[str, bool]]
+        A directory where the keys are the unique ids, and values are booleans.
+    Option[None]
+        File is not readable.
+    """
     if not fp.readable():
         logging.error(f'Unable to read file: {fp.name}')
         return None
@@ -163,6 +214,21 @@ def read_uids(fp: io.TextIOWrapper) -> dict[str, bool] | None:
 
 
 def write_uids(fp: io.TextIOWrapper, cards: Iterable[Card]) -> bool:
+    """
+    Write card uids to file.
+
+    Parameters
+    ----------
+    fp : io.TextIOWrapper
+        File in append mode.
+    cards : Iterable[Card]
+        Cards that are written to file
+
+    Returns
+    -------
+    bool
+        False if file is unwritable, else True.
+    """
     if not fp.writable():
         logging.error(f'Unable to write to file: {fp.name}')
         return False
