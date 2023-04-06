@@ -1,13 +1,57 @@
 # Wunderbar
 A cli tool to import anki cards.
 
-## UID
-```latex
-A-Za-z0-9
-24 \cdot 2 + 10 = 58
+## Install
+My environment uses the following dependency versions: 
+- python 3.10.10
+- anki 2.1.61
+- toml 0.10.2
+
+Other versions should work as well, but are not tested.
+I think python has to be >= 3.10, and anki >= 2.1.
+
+```command
+git clone "https://github.com/elicatza/wunderbar"
+cd wunderbar
+doas make install
 ```
 
-1.3 * (10 ^ 7) = 50% chance of duplicate
+## Uninstall
+When in cloned directory run the following:
+```command
+doas make uninstall
+cd ..
+rm -rf wunderbar
+```
+
+## Usage
+When in an orgmode file use this template:
+```org
+* Deutsch
+  Normal orgfile
+  #+begin_src toml
+  [basic.wmPE0ceT] # Unique card identifier to avoid duplicate cards
+  front = "Schon als Kind zeichnete und malte er gern."
+  back = "Allerede som barn tegnet og malte han gjerne."
+  tags = ["Deutsch"] # Optional
+  #+end_src
+```
+
+There are more templates in [examples](./examples/cards.org).
+
+
+I would recommend using a snippet engine to generate this template.
+Luasnip example later.
+
+
+Run `wunderbar.py -h` to see usage. Here are some examples:
+```command
+wunderbar.py --file myfile.org --deck [deck_name] --base [anki_base_dir]
+wunderbar.py -F myfile.org -d [deck_name] --force
+```
+
+`wunderbar.py` will not write to deck without confirming changes with user.
+This can be avoided using the --force falg, or -f for short.
 
 ## Neovim integration (the good stuff)
 
@@ -70,12 +114,50 @@ vim.api.nvim_create_autocmd("FileType", {
 })
 ```
 
+### Colored text
+Highlight a word / sentence in visual mode.
+Then click `<leader>am`, `<leader>an`, or `<leader>af` to color text.
+This uses the same autogroup as in the **user command** section.
+
+```lua
+vim.api.nvim_create_autocmd("FileType", {
+  pattern = "org",
+  group = anki_augroup,
+  desc = "Color me",
+  callback = function()
+    local function visual_surround_pre_suf(pre, suf)
+      local _, rs, cs = unpack(vim.fn.getpos('v'))
+      local _, re, ce = unpack(vim.fn.getpos('.'))
+      if rs ~= re then
+        -- Note: Does not work over multiple lines
+        return nil
+      end
+
+      if cs > ce then
+        vim.api.nvim_buf_set_text(0, rs - 1, cs, rs - 1, cs, { suf })
+        vim.api.nvim_buf_set_text(0, re - 1, ce -1, re - 1, ce - 1, { pre })
+      else
+        vim.api.nvim_buf_set_text(0, re - 1, ce, re - 1, ce, { suf })
+        vim.api.nvim_buf_set_text(0, rs - 1, cs - 1, rs - 1, cs - 1, { pre })
+      end
+    end
+
+    vim.keymap.set("v", '<leader>af', function()
+      visual_surround_pre_suf("<span style='color: rgb(247, 168, 184);'>", "</span>" )
+    end, { noremap = true })
+    vim.keymap.set("v", '<leader>an', function()
+      visual_surround_pre_suf("<span style='color: rgb(169, 169, 169);'>", "</span>" )
+    end, { noremap = true })
+    vim.keymap.set("v", '<leader>am', function()
+      visual_surround_pre_suf("<span style='color: rgb(85, 205, 252);'>", "</span>" )
+    end, { noremap = true })
+  end,
+})
+```
+
 ## TODO
 - Add markdown support
 - Tags based on git branch?
 - Custom css
-- Write usage
-- Write install
-- Write dependencies
 - Write AUR package
-- Write AUR Table of content
+- Table of content

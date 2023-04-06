@@ -263,7 +263,7 @@ def parse_toml(text: str) -> deque[Card] | None:
                 rt_cards.append(Card(
                     model=c_type,
                     uid=ikey,
-                    tags=ivalue.get('tags'),
+                    tags=ivalue.get('tags') or deque(),
                     front=ivalue['front'],
                     back=ivalue['back']))
             except (KeyError, TypeError):
@@ -295,6 +295,7 @@ def create_note(col: Collection, card: Card) -> anki.notes.Note | None:
 
     note.fields[0] = card.front
     note.fields[1] = card.back
+    note.tags = list(card.tags)
 
     if card.model == Model.reversed_optional:
         note.fields[2] = "yes"
@@ -313,6 +314,7 @@ def display_adjustments(col: Collection,
             print(f'Type : {n_type.get("name")}')
         print(f'Front: {note.fields[0]}')
         print(f'Back : {note.fields[1]}')
+        print(f'Tags : {note.tags}')
         print('')
 
     print(f'Base: {args.base}')

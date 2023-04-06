@@ -3,7 +3,7 @@
   [basic.TZM8JP5T]
   front = "die Katze"
   back = "katten"
-  tags = ["Deutsch"]
+  tags = ["Deutsch", "Animal"]
   #+end_src
 
   #+begin_src toml
@@ -24,5 +24,11 @@
   [reversed.FV8hDl8g]
   front = "die Katze"
   back = "katten"
-  tags = []
+  #+end_src
+
+  #+begin_src toml
+  [reversed_optional.IG2t9iAY]
+  front = "reversed_optional card"
+  back = "Still is"
+  tags = ["Deutsch"]
   #+end_src
