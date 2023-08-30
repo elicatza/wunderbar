@@ -10,7 +10,7 @@ import io
 import logging
 import os
 import sys
-import toml  # Note: change to tomllib in python 3.11
+import tomllib  # Note: change to tomllib in python 3.11
 
 
 if os.name == 'nt':
@@ -245,8 +245,8 @@ def write_uids(fp: io.TextIOWrapper, cards: Iterable[Card]) -> bool:
 
 def parse_toml(text: str) -> deque[Card] | None:
     try:
-        raw_dict = toml.loads(text)
-    except toml.TomlDecodeError as err:
+        raw_dict = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as err:
         logging.error(f'Unable to parse toml: {err}')
         return None
 

@@ -1,5 +1,5 @@
 # Wunderbar
-A cli tool to import anki cards.
+Anki, Orgmode, Neovim: simply wonderful.
 
 ## Install
 My environment uses the following dependency versions: 
@@ -156,7 +156,7 @@ vim.api.nvim_create_autocmd("FileType", {
 ```
 
 ## TODO
-- Add markdown support
+- Add markdown support (also plain toml i guess)
 - Tags based on git branch?
 - Custom css
 - Write AUR package
