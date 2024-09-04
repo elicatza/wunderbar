@@ -409,7 +409,7 @@ def main() -> None:
             sys.exit(1)
 
     logging.info('Saving cards')
-    col.save()
+    # col.save()  # Depricated
 
     return None
 
